@@ -23,6 +23,7 @@ public interface IBiliApiService
     Task<List<string>> GetSearchSuggestionsAsync(string keyword);
     // 更新接口方法的返回类型
     Task<(List<RoomOption> Results, int TotalPages)> SearchLiveRoomsAsync(string keyword, int page = 1);
+    Task<string> GetLiveStreamUrlAsync(long roomId, string? preferredCdn = null);
 }
 
 public class BiliApiService : IBiliApiService
@@ -133,7 +134,7 @@ public class BiliApiService : IBiliApiService
         }
     }
 
-    public async Task<string> GetLiveStreamUrlAsync(long roomId)
+    public async Task<string> GetLiveStreamUrlAsync(long roomId, string? preferredCdn = null)
     {
         try
         {
@@ -143,6 +144,13 @@ public class BiliApiService : IBiliApiService
             var url = $"{LiveApiHost}/xlive/web-room/v2/index/getRoomPlayInfo?" +
                      $"room_id={roomId}&protocol=0,1&format=0,1,2&codec=0,1&qn=10000&" +
                      $"platform=web&ptype=8";
+            
+            // 如果指定了首选CDN，添加到请求中
+            if (!string.IsNullOrEmpty(preferredCdn))
+            {
+                url += $"&codec=0&qn=0&platform=h5&ptype=0&line={preferredCdn}";
+                _logService.Debug($"使用指定的CDN: {preferredCdn}");
+            }
             
             var response = await _httpClient.GetStringAsync(url);
             _logService.Debug($"直播流API返回: {response}");

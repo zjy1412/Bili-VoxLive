@@ -7,7 +7,7 @@
     xmlns:controls="clr-namespace:BiliVoxLive.Controls"
     xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
     mc:Ignorable="d"
-    Title="Bili-VoxLive"
+    Title="Bili-VoxLive v1.0.1"
     Height="600" 
     Width="700"
     WindowStartupLocation="CenterScreen">

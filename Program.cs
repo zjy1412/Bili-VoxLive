@@ -76,10 +76,11 @@ public class Program
                     "--quiet",  // 完全禁用VLC日志输出
                     "--drop-late-frames",
                     "--skip-frames",
-                    "--network-caching=1000",
-                    "--live-caching=1000",
+                    "--network-caching=3000",  // 增加到3秒
+                    "--live-caching=3000",     // 增加到3秒
+                    "--file-caching=3000",     // 增加到3秒
                     "--clock-synchro=0", 
-                    "--sout-mux-caching=1000",
+                    "--sout-mux-caching=3000", // 增加到3秒
                     "--audio-time-stretch",
                     "--aout=mmdevice",
                     "--no-stats",
@@ -88,7 +89,13 @@ public class Program
                     "--no-metadata-network-access",
                     "--verbose=-1",       // 设置为最低日志级别
                     "--no-file-logging",  // 禁用文件日志
-                    "--no-sub-autodetect-file"
+                    "--no-sub-autodetect-file",
+                    "--codec=any",        // 使用任何可用解码器
+                    "--avcodec-hw=any",   // 允许任何硬件解码
+                    "--avcodec-threads=0", // 自动设置解码线程数
+                    "--http-reconnect",    // 启用HTTP重连
+                    "--http-continuous",   // 启用HTTP连续播放
+                    "--sout-keep"          // 保持输出连接
                 );
 
                 // 只记录真正的错误
