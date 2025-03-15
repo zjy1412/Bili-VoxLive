@@ -12,6 +12,18 @@
     Width="700"
     WindowStartupLocation="CenterScreen">
 
+    <Window.Resources>
+        <!-- 添加ComboBox的全局样式 -->
+        <Style TargetType="ComboBox">
+            <Style.Resources>
+                <!-- 下拉列表的样式 -->
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="Height" Value="30" />
+                </Style>
+            </Style.Resources>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="VideoColumn" Width="0"/>  <!-- 视频区域，初始宽度为0 -->
@@ -95,7 +107,16 @@
                 <ComboBox x:Name="RoomSelector"
                           Height="40"
                           VerticalContentAlignment="Center"
+                          MaxDropDownHeight="400"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          ScrollViewer.CanContentScroll="True"
                           SelectionChanged="RoomSelector_SelectionChanged">
+                    <ComboBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ComboBox.ItemsPanel>
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">

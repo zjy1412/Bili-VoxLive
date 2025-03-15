@@ -225,7 +225,7 @@ public class BiliApiService : IBiliApiService
     {
         try
         {
-            var url = "https://api.live.bilibili.com/xlive/web-ucenter/v1/xfetter/GetWebList?page=1&page_size=10";
+            var url = "https://api.live.bilibili.com/xlive/web-ucenter/v1/xfetter/GetWebList?page=1&page_size=100";
             Console.WriteLine($"Requesting: {url}");
             
             var response = await _httpClient.GetAsync(url);

@@ -13,6 +13,7 @@ using BiliVoxLive.Controls;
 using BiliVoxLive.Models; 
 using BiliVoxLive.Windows;
 using LibVLCSharp.Shared;  // 添加 LibVLCSharp.Shared 的引用
+using System.Reflection;
 
 // 添加新的房间选项数据模型（在类外部）
 public class RoomOption
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
     private GridLength _savedSearchColumnWidth = new GridLength(300); // 保存搜索栏宽度
     private bool _isVideoEnabled = false;
     private GridLength _savedVideoColumnWidth = new GridLength(300);
+    private double _savedMainContentWidth = 0;
 
     public MainWindow(
         BiliApiService biliApiService,
@@ -81,6 +83,12 @@ public partial class MainWindow : Window
     {
         try
         {
+            // 初始化保存的主界面宽度
+            _savedMainContentWidth = this.ActualWidth;
+            
+            // 初始化日志和版本信息
+            string versionInfo = $"Bili-VoxLive {Assembly.GetExecutingAssembly().GetName().Version}";
+            
             await InitializeAsync();
         }
         catch (Exception ex)
@@ -1072,36 +1080,32 @@ public partial class MainWindow : Window
 
     private void VideoToggle_Click(object sender, RoutedEventArgs e)
     {
-        var column = this.FindName("VideoColumn") as ColumnDefinition;
-        if (column != null)
+        var videoColumn = this.FindName("VideoColumn") as ColumnDefinition;
+        if (videoColumn != null)
         {
             if (VideoToggle.IsChecked == true)
             {
+                // 显示视频区域
                 // 计算所需的视频区域宽度（16:9比例）
                 double availableHeight = this.ActualHeight - 20;
                 double desiredVideoWidth = availableHeight * 16.0 / 9.0;
                 
-                // 保存当前窗口位置和大小
-                double currentLeft = this.Left;
-                double currentWidth = this.Width;
+                // 记录当前窗口大小和位置
+                double originalWidth = this.Width;
+                double originalLeft = this.Left;
                 
-                // 计算新的窗口宽度（当前宽度 + 视频区域宽度）
-                double newWidth = currentWidth + desiredVideoWidth;
+                // 存储这些值用于关闭时恢复（如果用户没有调整窗口大小）
+                _savedMainContentWidth = originalWidth;
                 
-                // 如果新窗口会超出屏幕右边界，则向左扩展
-                double screenWidth = SystemParameters.WorkArea.Width;
-                if (currentLeft + newWidth > screenWidth)
-                {
-                    this.Left = Math.Max(0, screenWidth - newWidth);
-                }
+                // 设置视频列宽度
+                videoColumn.Width = new GridLength(desiredVideoWidth, GridUnitType.Pixel);
                 
-                // 设置新的窗口宽度
-                this.Width = newWidth;
+                // 扩展窗口宽度，但保持窗口右侧位置不变
+                // 这样主内容区域不会向右移动
+                this.Width = originalWidth + desiredVideoWidth;
+                this.Left = Math.Max(0, originalLeft - desiredVideoWidth);
                 
-                // 设置视频区域宽度
-                column.Width = new GridLength(desiredVideoWidth, GridUnitType.Pixel);
-                
-                // 获取当前播放器
+                // 获取当前播放器并配置
                 var player = _liveStreamService.GetCurrentPlayer();
                 if (player != null)
                 {
@@ -1120,8 +1124,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                // 保存视频区域宽度
-                double videoWidth = column.Width.Value;
+                // 隐藏视频区域
                 
                 // 获取当前播放器
                 var player = _liveStreamService.GetCurrentPlayer();
@@ -1131,13 +1134,25 @@ public partial class MainWindow : Window
                     VideoView.Visibility = Visibility.Hidden;
                 }
                 
+                // 保存视频区域宽度以便下次打开时恢复
+                _savedVideoColumnWidth = videoColumn.Width;
+                
+                // 记录当前窗口位置和大小
+                double currentLeft = this.Left;
+                double currentWidth = this.Width;
+                double videoWidth = videoColumn.Width.Value;
+                
+                // 计算当前主内容区域的实际宽度（总宽度减去视频区域宽度）
+                double currentMainContentWidth = currentWidth - videoWidth;
+                
                 // 收起视频区域
-                _savedVideoColumnWidth = column.Width;
-                column.Width = new GridLength(0);
+                videoColumn.Width = new GridLength(0);
                 VideoSplitter.Visibility = Visibility.Collapsed;
                 
-                // 恢复窗口原来的宽度
-                this.Width = Math.Max(700, this.Width - videoWidth); // 确保不小于最小宽度
+                // 使用当前计算出的主内容区域宽度，而不是之前保存的值
+                // 这样能保留用户在视频打开期间对窗口大小的调整
+                this.Width = currentMainContentWidth;
+                this.Left = currentLeft + videoWidth;
                 
                 _isVideoEnabled = false;
             }
