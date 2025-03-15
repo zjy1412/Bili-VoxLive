@@ -155,13 +155,6 @@
                                Margin="5,0,0,0"
                                VerticalAlignment="Center"
                                Text="100%"/>
-                    <ToggleButton x:Name="DanmakuOverlayToggle"
-                                  Content="弹"
-                                  Margin="10,0,0,0"
-                                  Height="30"
-                                  Width="30"
-                                  IsChecked="False"
-                                  Click="DanmakuOverlayToggle_Click"/>
                     <ToggleButton x:Name="VideoToggle"
                                 Content="📺"
                                 Margin="10,0,0,0"

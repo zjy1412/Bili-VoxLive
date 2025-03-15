@@ -457,7 +457,9 @@ public partial class MainWindow : Window
     {
         if (DanmakuOverlay != null)
         {
-            if (DanmakuOverlayToggle.IsChecked == true)
+            // 由于弹幕按钮已被移除，我们不再需要检查按钮状态
+            // 此方法保留以保证代码完整性
+            if (sender is ToggleButton toggleButton && toggleButton.IsChecked == true)
             {
                 DanmakuOverlay.Visibility = Visibility.Visible;
                 DanmakuOverlay.IsEnabled = true;
