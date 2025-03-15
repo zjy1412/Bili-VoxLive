@@ -1,0 +1,314 @@
+﻿<Window
+    x:Class="BiliVoxLive.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="clr-namespace:BiliVoxLive.Controls"
+    xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+    mc:Ignorable="d"
+    Title="Bili-VoxLive"
+    Height="600" 
+    Width="700"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="VideoColumn" Width="0"/>  <!-- 视频区域，初始宽度为0 -->
+            <ColumnDefinition Width="Auto"/>  <!-- 视频分隔线 -->
+            <ColumnDefinition Width="*"/>     <!-- 主要内容区域 -->
+            <ColumnDefinition Width="Auto"/>  <!-- 搜索分隔线 -->
+            <ColumnDefinition x:Name="SearchColumn" Width="0"/>  <!-- 搜索区域 -->
+        </Grid.ColumnDefinitions>
+        
+        <!-- 视频播放区域 -->
+        <Grid Grid.Column="0" Background="Black">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- 视频显示区域 -->
+            <Border Grid.Row="0" 
+                    Background="Black" 
+                    BorderBrush="#333333" 
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 视频容器，强制16:9比例 -->
+                    <Viewbox Grid.Row="1" Grid.Column="1" 
+                             Stretch="Uniform">
+                        <Grid Width="1280" Height="720">
+                            <vlc:VideoView x:Name="VideoView" 
+                                         Background="Black"
+                                         Visibility="Collapsed"/>
+                        </Grid>
+                    </Viewbox>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <!-- 视频区域分隔线 -->
+        <GridSplitter x:Name="VideoSplitter"
+                      Grid.Column="1"
+                      Width="5"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Stretch"
+                      ResizeBehavior="PreviousAndNext"
+                      ResizeDirection="Columns"
+                      Background="#DDDDDD"
+                      Visibility="Collapsed"/>
+        
+        <!-- 主要内容区域 -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- Tabs区域 -->
+                <RowDefinition Height="Auto"/>  <!-- 音频控制区域 -->
+                <RowDefinition Height="Auto"/>  <!-- 人数显示区域 - 新增 -->
+                <RowDefinition Height="*"/>     <!-- 弹幕列表 -->
+                <RowDefinition Height="Auto"/>  <!-- 音量控制 -->
+            </Grid.RowDefinitions>
+
+            <!-- 替换原来的 DockPanel 内容 -->
+            <DockPanel Grid.Row="0" Height="40">
+                <Button x:Name="RefreshButton"
+                        DockPanel.Dock="Right"
+                        Width="40"
+                        Height="40"
+                        Margin="5,0,0,0"
+                        Click="RefreshButton_Click"
+                        ToolTip="刷新直播间列表">
+                    <TextBlock Text="🔄" 
+                              FontSize="16" 
+                              VerticalAlignment="Center"/>
+                </Button>
+                <ComboBox x:Name="RoomSelector"
+                          Height="40"
+                          VerticalContentAlignment="Center"
+                          SelectionChanged="RoomSelector_SelectionChanged">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Status}" 
+                                         Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding Title}"/>
+                                <TextBlock Text=" (" Margin="0"/>
+                                <TextBlock Text="{Binding HostName}"/>
+                                <TextBlock Text=")" Margin="0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </DockPanel>
+
+            <!-- 音频控制面板 -->
+            <DockPanel Grid.Row="1" 
+                       Margin="0,5">
+                <!-- 右侧按钮组 -->
+                <StackPanel DockPanel.Dock="Right" 
+                            Orientation="Horizontal">
+                    <Button x:Name="SearchButton"
+                            Content="🔍"
+                            Width="30"
+                            Height="30"
+                            Margin="0,0,5,0"
+                            Click="SearchButton_Click"
+                            ToolTip="搜索直播间"/>
+                    <Button x:Name="SettingsButton"
+                            Height="30"
+                            Width="30"
+                            Click="SettingsButton_Click"
+                            ToolTip="设置">
+                        <TextBlock Text="⚙️" FontSize="16"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- 左侧音量控制组 -->
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="MuteButton" 
+                            Width="30" 
+                            Height="30"
+                            Margin="0,0,5,0"
+                            Click="MuteButton_Click">
+                        <TextBlock Text="🔊" x:Name="MuteIcon"/>
+                    </Button>
+                    <Slider x:Name="VolumeSlider" 
+                            Width="100"
+                            Minimum="0"
+                            Maximum="100"
+                            Value="100"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                    <TextBlock x:Name="VolumeText" 
+                               MinWidth="40"
+                               Margin="5,0,0,0"
+                               VerticalAlignment="Center"
+                               Text="100%"/>
+                    <ToggleButton x:Name="DanmakuOverlayToggle"
+                                  Content="弹"
+                                  Margin="10,0,0,0"
+                                  Height="30"
+                                  Width="30"
+                                  IsChecked="False"
+                                  Click="DanmakuOverlayToggle_Click"/>
+                    <ToggleButton x:Name="VideoToggle"
+                                Content="📺"
+                                Margin="10,0,0,0"
+                                Height="30"
+                                Width="30"
+                                IsChecked="False"
+                                Click="VideoToggle_Click"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- 在音频控制面板下方添加人数显示区域 -->
+            <StackPanel Grid.Row="2" 
+                        Orientation="Horizontal" 
+                        Margin="5,0,5,5"
+                        HorizontalAlignment="Right">
+                <TextBlock Text="当前观看: " VerticalAlignment="Center"/>
+                <TextBlock x:Name="CurrentViewersText" 
+                           Text="0" 
+                           Margin="0,0,10,0" 
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="看过: " VerticalAlignment="Center"/>
+                <TextBlock x:Name="TotalViewersText" 
+                           Text="0" 
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- 把弹幕和控制面板部分移出 TabControl -->
+            <Grid Grid.Row="3">  <!-- 弹幕列表和弹幕层叠器 -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/> <!-- 弹幕列表 -->
+                    <RowDefinition Height="0"/> <!-- 弹幕覆盖层，可设置为 Auto 或固定高度 -->
+                </Grid.RowDefinitions>
+
+                <!-- 添加一个水平分割的Grid -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/> <!-- 弹幕列表区域 -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 弹幕列表 -->
+                    <ListView x:Name="DanmakuList" 
+                          Grid.Column="0"
+                          Background="White"  
+                          BorderThickness="1"
+                          BorderBrush="#DDDDDD"
+                          Margin="5"
+                          ScrollViewer.VerticalScrollBarVisibility="Visible"  
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          ScrollViewer.ScrollChanged="DanmakuList_ScrollChanged">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="MessageBorder" 
+                                        CornerRadius="4" 
+                                        Padding="8,4">
+                                    <TextBlock Text="{Binding Content}"
+                                              Foreground="{Binding TextColor}"
+                                              FontSize="{Binding FontSize}"
+                                              TextWrapping="Wrap"/>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsSuperChat}" Value="True">
+                                        <Setter TargetName="MessageBorder" Property="Background" Value="{Binding Background}"/>
+                                        <Setter TargetName="MessageBorder" Property="Margin" Value="0,5"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsGuardBuy}" Value="True">
+                                        <Setter TargetName="MessageBorder" Property="Background" Value="#FFB03C"/>
+                                        <Setter TargetName="MessageBorder" Property="Margin" Value="0,5"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                        <Setter TargetName="MessageBorder" Property="Background" Value="#FF4444"/>
+                                        <Setter TargetName="MessageBorder" Property="Margin" Value="0,5"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="5"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Visibility" Value="Visible"/>  <!-- 确保项目可见 -->
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                    
+                    <controls:DanmakuOverlay x:Name="DanmakuOverlay" 
+                                            Grid.Row="0"
+                                            Panel.ZIndex="1"
+                                            Background="Transparent"
+                                            IsHitTestVisible="False"/>
+                </Grid>
+            </Grid>
+
+            <!-- 输入框区域 -->
+            <Grid Grid.Row="4" Margin="0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>  <!-- 勋章按钮 -->
+                    <ColumnDefinition Width="*"/>     <!-- 输入框 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- 表情按钮 -->
+                    <ColumnDefinition Width="Auto"/>  <!-- 发送按钮 -->
+                </Grid.ColumnDefinitions>
+                
+                <Button x:Name="MedalButton"  
+                        Grid.Column="0"
+                        Content="🏆"
+                        Width="40"
+                        Margin="0,0,10,0"
+                        Click="MedalButton_Click"/>
+                
+                <TextBox x:Name="DanmakuInput" 
+                         Grid.Column="1"
+                         Margin="0,0,10,0"/>
+                
+                <Button x:Name="EmoticonButton"
+                        Grid.Column="2"
+                        Content="😊"
+                        Width="40"
+                        Margin="0,0,10,0"
+                        Click="EmoticonButton_Click"/>
+                
+                <Button x:Name="SendButton" 
+                        Grid.Column="3"
+                        Content="发送"
+                        Width="60"/>
+            </Grid>
+        </Grid>
+        
+        <!-- 搜索分隔线 -->
+        <GridSplitter x:Name="SearchSplitter"
+                      Grid.Column="3"
+                      Width="5"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Stretch"
+                      ResizeBehavior="PreviousAndNext"
+                      ResizeDirection="Columns"
+                      Background="#DDDDDD"
+                      Visibility="Collapsed"/>
+        
+        <!-- 搜索侧边栏容器 -->
+        <ContentControl x:Name="SearchSideBarHost" 
+                       Grid.Column="4" 
+                       Visibility="Collapsed"
+                       MinWidth="300"           
+                       Width="300"              
+                       HorizontalAlignment="Stretch"
+                       HorizontalContentAlignment="Stretch"/>
+    </Grid>
+</Window>

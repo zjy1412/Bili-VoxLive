@@ -1,0 +1,55 @@
+<Window x:Class="BiliVoxLive.Windows.SmsLoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="短信登录" Height="600" Width="400"
+        WindowStartupLocation="CenterOwner">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 手机号输入部分 -->
+        <StackPanel Grid.Row="0" Margin="20">
+            <TextBlock Text="手机号:" Margin="0,0,0,5"/>
+            <TextBox x:Name="PhoneNumberInput" Margin="0,0,0,10"/>
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="VerificationCodeInput" 
+                         Grid.Column="0"
+                         Margin="0,0,10,0"
+                         IsEnabled="False"/>
+                <Button x:Name="SendCodeButton" 
+                        Grid.Column="1"
+                        Content="获取验证码"
+                        Width="80"
+                        Click="SendCodeButton_Click"/>
+            </Grid>
+
+            <Button x:Name="LoginButton"
+                    Content="登录"
+                    Margin="0,20,0,0"
+                    Click="LoginButton_Click"
+                    IsEnabled="False"/>
+        </StackPanel>
+
+        <!-- WebView2 验证码区域 -->
+        <wv2:WebView2 x:Name="CaptchaWebView" 
+                     Grid.Row="1" 
+                     Visibility="Collapsed"/>
+
+        <!-- 状态栏 -->
+        <TextBlock x:Name="StatusText" 
+                  Grid.Row="2"
+                  Margin="20,10"
+                  TextWrapping="Wrap"
+                  TextAlignment="Center"/>
+    </Grid>
+</Window>

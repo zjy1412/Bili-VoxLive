@@ -1,0 +1,115 @@
+# .NET 构建输出
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]uild/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio 文件
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+
+# IDE 文件
+_ReSharper*/
+*.[Rr]e[Ss]harper
+.idea/
+.vscode/
+*.sln.iml
+.cr/
+*.swp
+*.*~
+*.dbproj.schemaview
+*.pfx
+*.publishsettings
+
+# 项目特定的文件
+.aider*
+.env
+bilibili_cookies.txt
+*.log
+*.cache
+*.bak
+todo.md
+References/
+
+# NuGet包
+packages/
+*.nupkg
+# NuGet Symbol包
+*.snupkg
+# 包含明确要包含的包的文件夹
+!packages/build/
+
+# 临时文件
+.tmp/
+.temp/
+[Tt]emp/
+*.tmp
+*.log
+
+# Windows临时文件
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 测试结果
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# 本地配置文件
+appsettings.*.json
+!appsettings.example.json
+!appsettings.template.json
+AppData/
+UserData/
+
+# 发布文件
+**/publish/
+**/Published/
+**/*.pubxml
+**/*.pubxml.user
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# 日志文件
+[Ll]ogs/
+*.log
+npm-debug.log*
+
+# 本地数据库文件
+*.mdf
+*.ldf
+*.ndf
+
+# 其他
+.DS_Store
+.sass-cache/

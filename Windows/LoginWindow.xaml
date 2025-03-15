@@ -1,0 +1,61 @@
+<Window x:Class="BiliVoxLive.Windows.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="登录B站" 
+        Height="400" 
+        Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="选择登录方式"
+                 FontSize="18"
+                 Margin="0,0,0,20"/>
+
+        <StackPanel Grid.Row="1" Margin="10">
+            <Button x:Name="QrCodeLoginButton"
+                    Height="50"
+                    Margin="0,0,0,10"
+                    Click="QrCodeLoginButton_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔲" FontSize="20" Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="扫码登录" FontSize="16"/>
+                        <TextBlock Text="使用B站手机客户端扫码" FontSize="12" Foreground="#666"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <Button x:Name="SmsLoginButton"
+                    Height="50"
+                    Margin="0,0,0,10"
+                    Click="SmsLoginButton_Click"
+                    IsEnabled="False">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📱" FontSize="20" Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="短信登录" FontSize="16"/>
+                        <TextBlock Text="功能开发中..." FontSize="12" Foreground="#666"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <Button x:Name="CookieLoginButton"
+                    Height="50"
+                    Margin="0,0,0,10"
+                    Click="CookieLoginButton_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🍪" FontSize="20" Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Cookie登录" FontSize="16"/>
+                        <TextBlock Text="粘贴Cookies内容" FontSize="12" Foreground="#666"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>
