@@ -49,7 +49,7 @@ namespace BiliVoxLive.Controls
         private int _totalPages = 1;
         private ObservableCollection<PageNumberVM> _pageNumbersToShow = new();
         private string _currentKeyword = "";
-        private BiliApiService _biliApiService;
+        private BiliApiService? _biliApiService;
         
         public ObservableCollection<PageNumberVM> PageNumbersToShow 
         { 
@@ -116,7 +116,7 @@ namespace BiliVoxLive.Controls
             }), DispatcherPriority.Input);
         }
 
-        private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _searchTimer?.Stop();
             if (!string.IsNullOrWhiteSpace(SearchBox.Text))
@@ -136,6 +136,8 @@ namespace BiliVoxLive.Controls
             {
                 if (string.IsNullOrWhiteSpace(SearchBox.Text)) return;
                 
+                if (_biliApiService == null) return;
+                
                 var suggestions = await _biliApiService.GetSearchSuggestionsAsync(SearchBox.Text);
                 SearchSuggestions.Clear();
                 foreach (var suggestion in suggestions)
@@ -143,8 +145,7 @@ namespace BiliVoxLive.Controls
                     SearchSuggestions.Add(suggestion);
                 }
                 
-                // 有建议时显示Popup
-                if (SearchSuggestions.Any() && SearchBox.IsFocused)
+                if (SearchSuggestions.Any() && SearchBox != null && SearchBox.IsFocused)
                 {
                     SuggestionsPopup.IsOpen = true;
                 }
@@ -166,7 +167,7 @@ namespace BiliVoxLive.Controls
         {
             if (e.Key == Key.Enter)
             {
-                PerformSearch();
+                _ = Task.Run(async () => await PerformSearch());
                 e.Handled = true;
             }
         }
@@ -186,7 +187,22 @@ namespace BiliVoxLive.Controls
                 // 关闭建议、隐藏popup并取消搜索框焦点
                 SearchSuggestions.Clear();
                 SuggestionsPopup.IsOpen = false;
-                SearchBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                
+                // 添加对SearchBox的非空检查
+                if (SearchBox != null)
+                {
+                    SearchBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                }
+                
+                // 确保_biliApiService不为空
+                if (_biliApiService == null)
+                {
+                    _logService?.Error("BiliApiService为空，无法执行搜索");
+                    _isProcessing = false;
+                    OnPropertyChanged(nameof(CanGoPrevious));
+                    OnPropertyChanged(nameof(CanGoNext));
+                    return;
+                }
                 
                 var (results, totalPages) = await _biliApiService.SearchLiveRoomsAsync(_currentKeyword, page);
                 foreach (var room in results)
@@ -304,7 +320,22 @@ namespace BiliVoxLive.Controls
                 // 关闭建议、隐藏popup并取消搜索框焦点
                 SearchSuggestions.Clear();
                 SuggestionsPopup.IsOpen = false;
-                SearchBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                
+                // 添加对SearchBox的非空检查
+                if (SearchBox != null)
+                {
+                    SearchBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                }
+                
+                // 确保_biliApiService不为空
+                if (_biliApiService == null)
+                {
+                    _logService?.Error("BiliApiService为空，无法执行搜索");
+                    _isProcessing = false;
+                    OnPropertyChanged(nameof(CanGoPrevious));
+                    OnPropertyChanged(nameof(CanGoNext));
+                    return;
+                }
                 
                 var (results, totalPages) = await _biliApiService.SearchLiveRoomsAsync(_currentKeyword, _currentPage);
                 foreach (var room in results)
@@ -338,8 +369,8 @@ namespace BiliVoxLive.Controls
                 SearchBox.Text = suggestion;
                 // 清除选中状态
                 listBox.SelectedItem = null;
-                // 执行搜索
-                PerformSearch();
+                // 执行搜索，使用异步lambda
+                _ = Task.Run(async () => await PerformSearch());
             }
         }
     }

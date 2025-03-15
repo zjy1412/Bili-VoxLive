@@ -199,7 +199,7 @@ public class LiveStreamService : ILiveStreamService
         return client;
     }
 
-    private async Task<bool> TryInitializePlayerAsync(long roomId, string streamUrl)
+    private Task<bool> TryInitializePlayerAsync(long roomId, string streamUrl)
     {
         var player = null as MediaPlayer;
         try
@@ -254,7 +254,7 @@ public class LiveStreamService : ILiveStreamService
             _currentPlayer = player;
             
             _logService.Info("播放器已创建，等待视频组件准备就绪");
-            return true;
+            return Task.FromResult(true);
         }
         catch (OperationCanceledException)
         {
@@ -298,7 +298,7 @@ public class LiveStreamService : ILiveStreamService
                 }
             }
             
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -356,7 +356,7 @@ public class LiveStreamService : ILiveStreamService
         if (_libVLC != null)
         {
             _libVLC.Dispose();
-            _libVLC = null;
+            _libVLC = null!;
         }
     }
 
@@ -437,6 +437,37 @@ public class LiveStreamService : ILiveStreamService
             _connectionTasks.Clear();
             
             StopAsync().Wait();
+        }
+    }
+
+    private async Task ProcessAudioStreamAsync(long roomId, Stream stream, CancellationToken ct)
+    {
+        try
+        {
+            var reader = new FlvStreamReader(stream, _logService);
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    var audioData = await reader.ReadAudioDataAsync();
+                    if (audioData.Length > 0)
+                    {
+                        // 使用类的事件，确保参数顺序和类型正确
+                        OnAudioDataReceived?.Invoke(this, new AudioDataEventArgs(audioData, roomId));
+                        
+                        // 这里添加处理音频数据的代码
+                        _logService.Debug($"接收到音频数据: {audioData.Length} 字节");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error($"处理音频数据失败: {ex.Message}", ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Error($"音频流处理错误: {ex.Message}", ex);
         }
     }
 }

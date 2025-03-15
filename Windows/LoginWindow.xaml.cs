@@ -81,13 +81,13 @@ public partial class LoginWindow : Window
         }
     }
 
-    private async void SmsLoginButton_Click(object sender, RoutedEventArgs e)
+    private void SmsLoginButton_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show("该功能正在开发中，敬请期待！", "提示", 
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
-    private async void CookieLoginButton_Click(object sender, RoutedEventArgs e)
+    private void CookieLoginButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
@@ -100,9 +100,15 @@ public partial class LoginWindow : Window
             var dialog = new InputDialog("Cookie登录", cookieGuide) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                await _biliApiService.LoginAsync(dialog.Answer);
-                _loginSuccess = true;
-                Close();
+                _ = Task.Run(async () =>
+                {
+                    await _biliApiService.LoginAsync(dialog.Answer);
+                    Dispatcher.Invoke(() =>
+                    {
+                        _loginSuccess = true;
+                        Close();
+                    });
+                });
             }
         }
         catch (Exception ex)
@@ -113,12 +119,12 @@ public partial class LoginWindow : Window
         }
     }
 
-    private async Task<BitmapImage> GenerateQrCodeImage(string url)
+    private Task<BitmapImage> GenerateQrCodeImage(string url)
     {
-        using var qrGenerator = new QRCodeGenerator();
-        using var qrData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
-        using var qrCode = new QRCode(qrData);
-        using var bitmap = qrCode.GetGraphic(20); // 20是像素大小
+        var qrGenerator = new QRCodeGenerator();
+        var qrData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+        var qrCode = new QRCode(qrData);
+        var bitmap = qrCode.GetGraphic(20); // 20是像素大小
         
         var bitmapImage = new BitmapImage();
         using var memory = new MemoryStream();
@@ -132,7 +138,13 @@ public partial class LoginWindow : Window
         bitmapImage.EndInit();
         bitmapImage.Freeze();
         
-        return bitmapImage;
+        // 将所有资源释放
+        qrCode.Dispose();
+        qrData.Dispose();
+        qrGenerator.Dispose();
+        bitmap.Dispose();
+
+        return Task.FromResult(bitmapImage);
     }
 
     private async Task CheckQrCodeStatus(string qrKey, CancellationToken ct)

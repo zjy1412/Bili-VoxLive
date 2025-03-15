@@ -248,7 +248,8 @@ public class CookieService : ICookieService
         {
             if (File.Exists(_cookieFilePath))
             {
-                File.Delete(_cookieFilePath);  // File.DeleteAsync 不存在，使用同步方法
+                // 使用异步方法删除文件
+                await Task.Run(() => File.Delete(_cookieFilePath));
                 _cachedCookie = null;
                 _logService.Debug($"Cookie文件已删除: {_cookieFilePath}");
             }

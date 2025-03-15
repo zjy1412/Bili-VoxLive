@@ -1,12 +1,9 @@
-
 namespace BiliVoxLive.Controls;
 
 using System.Windows.Controls;
 
 public partial class LogViewer : UserControl
 {
-    private readonly ILogService _logService;
-
     public LogViewer()
     {
         InitializeComponent();

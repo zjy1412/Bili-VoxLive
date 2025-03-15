@@ -40,7 +40,6 @@ public partial class MainWindow : Window
     private string _currentUsername = "未登录";
     private Queue<long> _searchAddedRoomIds = new Queue<long>();
     private const int MaxSearchAddedRooms = 3;
-    private bool _isRoomSwitching = false; // 添加标志位
     private CancellationTokenSource? _currentConnectionCts;
     private bool _isEmoticonButtonProcessing = false;
     private bool _isMedalButtonProcessing = false;
@@ -561,7 +560,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnAudioDataReceived(object sender, AudioDataEventArgs e)
+    private void OnAudioDataReceived(object? sender, AudioDataEventArgs e)
     {
         // 移除音频可视化相关代码，因为我们暂时不实现它
     }
@@ -593,10 +592,9 @@ public partial class MainWindow : Window
 
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
     {
-        var button = sender as Button;
-        if (e.RoutedEvent == Button.MouseRightButtonDownEvent)
+        if (sender is FrameworkElement button && button.ContextMenu == null)
         {
-            var menu = new ContextMenu();
+            ContextMenu menu = new ContextMenu();
             var searchItem = new MenuItem { Header = "搜索直播间" };
             searchItem.Click += (s, args) => 
             {
@@ -656,7 +654,7 @@ public partial class MainWindow : Window
         public double FontSize { get; set; } = 14;
     }
 
-    private async void OnDanmakuReceived(object sender, DanmakuEventArgs e)
+    private void OnDanmakuReceived(object? sender, DanmakuEventArgs e)
     {
         if (!Dispatcher.CheckAccess())
         {
@@ -900,7 +898,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void SettingsButton_Click(object sender, RoutedEventArgs e)
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
         var menu = new ContextMenu();
         
@@ -921,7 +919,7 @@ public partial class MainWindow : Window
             Header = "退出登录",
             Foreground = Brushes.Red
         };
-        logoutItem.Click += async (s, args) => await LogoutAsync();
+        logoutItem.Click += (s, args) => _ = Task.Run(async () => await LogoutAsync());
         menu.Items.Add(logoutItem);
 
         // 显示菜单
@@ -1031,7 +1029,7 @@ public partial class MainWindow : Window
     }
 
     // 新增：添加房间到列表的方法
-    private async Task AddRoomToList(RoomOption room, bool fromSearch = false)
+    private Task AddRoomToList(RoomOption room, bool fromSearch = false)
     {
         // 检查是否已存在相同房间
         var existingRoom = RoomSelector.Items.OfType<RoomOption>()
@@ -1043,7 +1041,7 @@ public partial class MainWindow : Window
             RoomSelector.Items.Remove(existingRoom);
             RoomSelector.Items.Insert(0, existingRoom);
             RoomSelector.SelectedItem = existingRoom;
-            return;
+            return Task.CompletedTask;
         }
 
         // 如果是搜索添加的房间
@@ -1066,6 +1064,8 @@ public partial class MainWindow : Window
         // 添加新房间到顶部
         RoomSelector.Items.Insert(0, room);
         RoomSelector.SelectedItem = room;
+        
+        return Task.CompletedTask;
     }
 
     private void VideoToggle_Click(object sender, RoutedEventArgs e)
