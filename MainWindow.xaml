@@ -149,6 +149,7 @@
                             Value="100"
                             TickFrequency="1"
                             IsSnapToTickEnabled="True"
+                            IsMoveToPointEnabled="True"
                             ValueChanged="VolumeSlider_ValueChanged"/>
                     <TextBlock x:Name="VolumeText" 
                                MinWidth="40"
