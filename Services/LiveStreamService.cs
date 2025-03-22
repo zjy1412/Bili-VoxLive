@@ -152,7 +152,7 @@ public class LiveStreamService : ILiveStreamService
                 try
                 {
                     // 先从字典中移除，避免状态冲突
-                    _mediaPlayers.Remove(roomId);
+                    _mediaPlayers.TryRemove(roomId, out _);
                     
                     if (_currentPlayer == player)
                     {
@@ -255,7 +255,7 @@ public class LiveStreamService : ILiveStreamService
                 Task.Delay(500).Wait();
                 
                 existingPlayer.Dispose();
-                _mediaPlayers.Remove(roomId);
+                _mediaPlayers.TryRemove(roomId, out _);
                 
                 // 如果当前播放器是要被替换的播放器，则清空引用
                 if (_currentPlayer == existingPlayer)
@@ -435,7 +435,7 @@ public class LiveStreamService : ILiveStreamService
                 }
                 catch { }
                 
-                _mediaPlayers.Remove(roomId);
+                _mediaPlayers.TryRemove(roomId, out _);
                 if (_currentPlayer == player)
                 {
                     _currentPlayer = null;
