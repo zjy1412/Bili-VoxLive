@@ -10,7 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using BiliVoxLive.Controls;
-using BiliVoxLive.Models; 
+using BiliVoxLive.Models;
 using BiliVoxLive.Windows;
 using LibVLCSharp.Shared;  // 添加 LibVLCSharp.Shared 的引用
 
@@ -55,7 +55,7 @@ public partial class MainWindow : Window
         CookieService cookieService)  // 添加这个参数
     {
         InitializeComponent();
-        
+
         _biliApiService = biliApiService ?? throw new ArgumentNullException(nameof(biliApiService));
         _liveStreamService = liveStreamService ?? throw new ArgumentNullException(nameof(liveStreamService));
         _danmakuService = danmakuService ?? throw new ArgumentNullException(nameof(danmakuService));
@@ -64,10 +64,10 @@ public partial class MainWindow : Window
 
         // 订阅日志事件
         _logService.OnLogReceived += OnLogReceived;
-        
+
         // 窗口加载完成后初始化
         this.Loaded += MainWindow_Loaded;
-        
+
         // 窗口关闭时清理
         this.Closed += MainWindow_Closed;
 
@@ -107,12 +107,12 @@ public partial class MainWindow : Window
 
         // 取消所有事件订阅（确保只订阅一次）
         UnsubscribeEvents();
-        
+
         // 重新订阅事件
         _danmakuService.OnDanmakuReceived += OnDanmakuReceived;
         SendButton.Click += OnSendDanmakuClick;
         DanmakuInput.KeyDown += DanmakuInput_KeyDown;
-        
+
         _logService.Info("事件处理程序初始化完成");
     }
 
@@ -134,13 +134,13 @@ public partial class MainWindow : Window
 
     private async Task InitializeAsync()
     {
-        try 
+        try
         {
             _logService.Info("正在初始化窗口...");
-            
+
             // 确保订阅事件
             InitializeEvents();
-            
+
             // 初始化弹幕悬浮层状态
             if (DanmakuOverlay != null)
             {
@@ -191,7 +191,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _logService.Error("初始化失败", ex);
-            MessageBox.Show($"初始化失败: {ex.Message}\n\n可以查看日志了解详细信息", 
+            MessageBox.Show($"初始化失败: {ex.Message}\n\n可以查看日志了解详细信息",
                 "错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -202,21 +202,21 @@ public partial class MainWindow : Window
         {
             _logService.Info("显示登录对话框...");
             var loginResult = await ShowLoginDialog();
-            
+
             if (!loginResult)
             {
                 _logService.Info("用户取消登录");
                 this.Close();  // 如果用户取消登录，直接关闭主窗口
                 return;
             }
-            
+
             await LoadRooms();
             _logService.Info("初始化完成");
         }
         catch (Exception ex)
         {
             _logService.Error("登录失败", ex);
-            MessageBox.Show("登录失败，请查看日志了解详细信息", "错误", 
+            MessageBox.Show("登录失败，请查看日志了解详细信息", "错误",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             this.Close();  // 登录失败时关闭窗口
         }
@@ -224,11 +224,11 @@ public partial class MainWindow : Window
 
     private async Task<bool> ShowLoginDialog()
     {
-        var loginWindow = new LoginWindow(_logService, _biliApiService) 
-        { 
-            Owner = this 
+        var loginWindow = new LoginWindow(_logService, _biliApiService)
+        {
+            Owner = this
         };
-        
+
         loginWindow.ShowDialog();
 
         // 如果登录成功，更新用户信息并返回 true
@@ -244,10 +244,10 @@ public partial class MainWindow : Window
 
     private async Task LoadRooms()
     {
-        try 
+        try
         {
             var rooms = await _biliApiService.GetFollowedLiveRoomsAsync();
-            
+
             if (!rooms.Any())
             {
                 MessageBox.Show(
@@ -258,24 +258,24 @@ public partial class MainWindow : Window
                 );
                 return;
             }
-            
+
             // 保存搜索添加的房间
             var searchAddedRooms = RoomSelector.Items.OfType<RoomOption>()
                 .Where(r => _searchAddedRoomIds.Contains(r.RoomId))
                 .ToList();
-            
+
             RoomSelector.Items.Clear();
-            
+
             // 先添加搜索的房间
             foreach (var room in searchAddedRooms)
             {
                 RoomSelector.Items.Add(room);
             }
-            
+
             // 将直播中的房间排在前面
             var sortedRooms = rooms.OrderByDescending(r => r.IsLiving)
                                  .ThenBy(r => r.Title);
-            
+
             // 添加关注的房间（排除已添加的搜索房间）
             foreach (var room in sortedRooms)
             {
@@ -304,8 +304,8 @@ public partial class MainWindow : Window
             _logService.Error($"加载房间列表失败: {ex.Message}");
             MessageBox.Show(
                 "获取直播间列表失败，请检查网络连接后重试。",
-                "错误", 
-                MessageBoxButton.OK, 
+                "错误",
+                MessageBoxButton.OK,
                 MessageBoxImage.Error
             );
         }
@@ -317,18 +317,18 @@ public partial class MainWindow : Window
         try
         {
             progress.Show();
-            
+
             // 立即断开所有其他房间的连接
             var disconnectTasks = RoomSelector.Items
                 .OfType<RoomOption>()
                 .Where(r => r.RoomId != roomId)
                 .Select(r => CleanupRoomConnection(r.RoomId));
-            
+
             await Task.WhenAll(disconnectTasks);
 
             // 使用合并的取消令牌，同时响应超时和手动取消
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken, 
+                cancellationToken,
                 new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
 
             var connectionTasks = new List<Task>
@@ -342,15 +342,38 @@ public partial class MainWindow : Window
             // 如果视频已启用，设置视频播放器
             if (_liveStreamService.GetCurrentPlayer() is LibVLCSharp.Shared.MediaPlayer player)
             {
-                // 始终绑定播放器到 VideoView，避免 LibVLC 创建新窗口
-                VideoView.MediaPlayer = player;
-                // 如果播放器未启动，则手动启动播放
-                if (!player.IsPlaying)
+                try
                 {
-                    player.Play();
+                    // 先停止当前播放器
+                    if (VideoView.MediaPlayer != null && VideoView.MediaPlayer != player)
+                    {
+                        VideoView.MediaPlayer = null;
+                    }
+
+                    // 绑定播放器到 VideoView，避免 LibVLC 创建新窗口
+                    VideoView.MediaPlayer = player;
+
+                    // 设置播放器参数
+                    player.EnableMouseInput = false;
+                    player.EnableKeyInput = false;
+                    player.Scale = 0; // 自动缩放以适应窗口
+                    player.AspectRatio = "16:9";
+
+                    // 如果播放器未启动，则手动启动播放
+                    if (!player.IsPlaying)
+                    {
+                        player.Play();
+                    }
+
+                    // 根据当前是否开启视频，设置 VideoView 的可见性
+                    VideoView.Visibility = _isVideoEnabled ? Visibility.Visible : Visibility.Hidden;
+
+                    _logService.Debug($"播放器已绑定到VideoView, 可见性: {VideoView.Visibility}");
                 }
-                // 根据当前是否开启视频，设置 VideoView 的可见性
-                VideoView.Visibility = _isVideoEnabled ? Visibility.Visible : Visibility.Hidden;
+                catch (Exception ex)
+                {
+                    _logService.Error($"设置视频播放器失败: {ex.Message}");
+                }
             }
 
             _logService.Info($"已成功连接到房间 {roomId}");
@@ -379,20 +402,20 @@ public partial class MainWindow : Window
         try
         {
             _logService.Info($"正在清理房间 {roomId} 的连接...");
-            
+
             var cleanupTasks = new List<Task>();
-            
+
             // 清理弹幕连接
             cleanupTasks.Add(_danmakuService.DisconnectFromRoomAsync(roomId));
-            
+
             // 清理直播流
             cleanupTasks.Add(_liveStreamService.HandleRoomAsync(roomId, false));
-            
+
             // 清理UI
             DanmakuList.Items.Clear();
             DanmakuOverlay?.ClearDanmaku();
             VideoView.MediaPlayer = null;
-            
+
             await Task.WhenAll(cleanupTasks);
             _logService.Info($"已清理房间 {roomId} 的连接");
         }
@@ -419,12 +442,12 @@ public partial class MainWindow : Window
                 _currentConnectionCts.Dispose();
             }
             _currentConnectionCts = new CancellationTokenSource();
-            
+
             var newRoomId = selected.RoomId;
             var oldRoomId = _currentRoomId;
-            
+
             if (newRoomId == oldRoomId) return;
-            
+
             _logService.Info($"准备从房间 {oldRoomId} 切换到 {newRoomId}");
 
             // 立即清理UI和状态
@@ -436,7 +459,7 @@ public partial class MainWindow : Window
             // 强制断开所有连接并连接到新房间
             await _liveStreamService.HandleRoomAsync(oldRoomId, false);
             await _danmakuService.DisconnectFromRoomAsync(oldRoomId);
-            
+
             // 连接新房间
             await ConnectToRoom(newRoomId, _currentConnectionCts.Token);
         }
@@ -447,7 +470,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _logService.Error($"切换房间失败: {ex.Message}");
-            MessageBox.Show($"切换房间失败: {ex.Message}", "错误", 
+            MessageBox.Show($"切换房间失败: {ex.Message}", "错误",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -506,7 +529,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _logService.Error("发送弹幕失败", ex);
-            MessageBox.Show("发送弹幕失败: " + ex.Message, "错误", 
+            MessageBox.Show("发送弹幕失败: " + ex.Message, "错误",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -545,7 +568,7 @@ public partial class MainWindow : Window
             _logService.OnLogReceived -= OnLogReceived;
             _danmakuService.OnDanmakuReceived -= OnDanmakuReceived;
             _liveStreamService.OnAudioDataReceived -= OnAudioDataReceived;
-            
+
             // 断开所有房间连接
             foreach (RoomOption room in RoomSelector.Items)  // 修改这里
             {
@@ -579,7 +602,7 @@ public partial class MainWindow : Window
 
         var volume = (float)(e.NewValue / 100.0); // 将百分比转换为0-1的值
         VolumeText.Text = $"{(int)e.NewValue}%";
-        
+
         await _liveStreamService.SetVolumeAsync(_currentRoomId, volume);
     }
 
@@ -598,11 +621,11 @@ public partial class MainWindow : Window
         {
             ContextMenu menu = new ContextMenu();
             var searchItem = new MenuItem { Header = "搜索直播间" };
-            searchItem.Click += (s, args) => 
+            searchItem.Click += (s, args) =>
             {
                 // 使用 SearchSideBarHost
-                SearchSideBarHost.Visibility = 
-                    SearchSideBarHost.Visibility == Visibility.Visible ? 
+                SearchSideBarHost.Visibility =
+                    SearchSideBarHost.Visibility == Visibility.Visible ?
                     Visibility.Collapsed : Visibility.Hidden;
             };
             menu.Items.Add(searchItem);
@@ -615,7 +638,7 @@ public partial class MainWindow : Window
             {
                 RefreshButton.IsEnabled = false;
                 _logService.Info("正在刷新直播间列表...");
-                
+
                 var currentRoomId = _currentRoomId;
                 await LoadRooms();
 
@@ -635,7 +658,7 @@ public partial class MainWindow : Window
             catch (Exception ex)
             {
                 _logService.Error("刷新直播间列表失败", ex);
-                MessageBox.Show($"刷新失败: {ex.Message}", "错误", 
+                MessageBox.Show($"刷新失败: {ex.Message}", "错误",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -705,7 +728,7 @@ public partial class MainWindow : Window
                 }
 
                 DanmakuList.Items.Add(message);
-                
+
                 // 只有当应该自动滚动时才滚动到底部
                 if (_shouldAutoScroll)
                 {
@@ -720,8 +743,8 @@ public partial class MainWindow : Window
                 }
 
                 // 只有在弹幕悬浮层启用时才显示悬浮弹幕
-                if (DanmakuOverlay != null && 
-                    DanmakuOverlay.IsEnabled && 
+                if (DanmakuOverlay != null &&
+                    DanmakuOverlay.IsEnabled &&
                     DanmakuOverlay.Visibility == Visibility.Visible)
                 {
                     DanmakuOverlay.ShowDanmaku(message.Content, e.IsGift, e.IsSuperChat);
@@ -740,7 +763,7 @@ public partial class MainWindow : Window
         try
         {
             _isEmoticonButtonProcessing = true;
-            
+
             if (_currentRoomId == 0)
             {
                 MessageBox.Show("请先选择一个直播间", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -749,7 +772,7 @@ public partial class MainWindow : Window
 
             // 获取表情包
             _emoticonPackages = await _biliApiService.GetEmoticons(_currentRoomId);
-            
+
             // 每次都创建新的表情窗口实例
             _emoticonWindow?.Dispose();  // 如果之前有实例，先释放
             _emoticonWindow = new EmoticonWindow(_emoticonPackages, _currentRoomId);
@@ -763,7 +786,7 @@ public partial class MainWindow : Window
             // 设置弹出窗口的定位目标和方式
             _emoticonWindow.PlacementTarget = sender as Button;
             _emoticonWindow.Placement = PlacementMode.Top;
-            
+
             _emoticonWindow.IsOpen = true;
         }
         catch (Exception ex)
@@ -783,7 +806,7 @@ public partial class MainWindow : Window
         try
         {
             _isMedalButtonProcessing = true;
-            
+
             var medals = await _biliApiService.GetFanMedalsAsync();
             if (!medals.Any())
             {
@@ -795,11 +818,11 @@ public partial class MainWindow : Window
             var currentItem = new MenuItem { Header = "当前佩戴：" };
             currentItem.IsEnabled = false;
             menu.Items.Add(currentItem);
-            
+
             var noneItem = new MenuItem { Header = "不佩戴" };
             noneItem.Click += async (s, args) => await WearMedal(0);
             menu.Items.Add(noneItem);
-            
+
             menu.Items.Add(new Separator());
 
             foreach (var medal in medals)
@@ -873,7 +896,7 @@ public partial class MainWindow : Window
             if (result != null)
                 return result;
         }
-        
+
         return null;
     }
 
@@ -903,21 +926,21 @@ public partial class MainWindow : Window
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
         var menu = new ContextMenu();
-        
+
         // 用户名项（不可点击）
-        var usernameItem = new MenuItem 
-        { 
+        var usernameItem = new MenuItem
+        {
             Header = _currentUsername,
             IsEnabled = false,
             Background = Brushes.LightGray
         };
         menu.Items.Add(usernameItem);
-        
+
         menu.Items.Add(new Separator());
 
         // 退出登录项（总是在最后）
-        var logoutItem = new MenuItem 
-        { 
+        var logoutItem = new MenuItem
+        {
             Header = "退出登录",
             Foreground = Brushes.Red
         };
@@ -1011,13 +1034,13 @@ public partial class MainWindow : Window
         var searchSideBar = new SearchSideBar();
         searchSideBar.Initialize(_biliApiService, _logService);
         SearchSideBarHost.Content = searchSideBar;
-        
+
         searchSideBar.RoomSelected += async (sender, room) =>
         {
             if (room != null)
             {
                 await AddRoomToList(room, true);
-                
+
                 // 隐藏搜索栏和分隔线
                 SearchSideBarHost.Visibility = Visibility.Collapsed;
                 SearchSplitter.Visibility = Visibility.Collapsed;
@@ -1066,7 +1089,7 @@ public partial class MainWindow : Window
         // 添加新房间到顶部
         RoomSelector.Items.Insert(0, room);
         RoomSelector.SelectedItem = room;
-        
+
         return Task.CompletedTask;
     }
 
@@ -1080,41 +1103,62 @@ public partial class MainWindow : Window
                 // 计算所需的视频区域宽度（16:9比例）
                 double availableHeight = this.ActualHeight - 20;
                 double desiredVideoWidth = availableHeight * 16.0 / 9.0;
-                
+
                 // 保存当前窗口位置和大小
                 double currentLeft = this.Left;
                 double currentWidth = this.Width;
-                
+
                 // 计算新的窗口宽度（当前宽度 + 视频区域宽度）
                 double newWidth = currentWidth + desiredVideoWidth;
-                
+
                 // 如果新窗口会超出屏幕右边界，则向左扩展
                 double screenWidth = SystemParameters.WorkArea.Width;
                 if (currentLeft + newWidth > screenWidth)
                 {
                     this.Left = Math.Max(0, screenWidth - newWidth);
                 }
-                
+
                 // 设置新的窗口宽度
                 this.Width = newWidth;
-                
+
                 // 设置视频区域宽度
                 column.Width = new GridLength(desiredVideoWidth, GridUnitType.Pixel);
-                
+
                 // 获取当前播放器
                 var player = _liveStreamService.GetCurrentPlayer();
                 if (player != null)
                 {
-                    // 设置播放器参数
-                    player.EnableMouseInput = true;
-                    player.EnableKeyInput = true;
-                    player.Scale = 0; // 自动缩放以适应窗口
-                    player.AspectRatio = "16:9";
-                    
-                    // 显示视频区域
-                    VideoView.Visibility = Visibility.Visible;
+                    try
+                    {
+                        // 确保播放器绑定到VideoView
+                        if (VideoView.MediaPlayer != player)
+                        {
+                            VideoView.MediaPlayer = player;
+                        }
+
+                        // 设置播放器参数
+                        player.EnableMouseInput = false;
+                        player.EnableKeyInput = false;
+                        player.Scale = 0; // 自动缩放以适应窗口
+                        player.AspectRatio = "16:9";
+
+                        // 显示视频区域
+                        VideoView.Visibility = Visibility.Visible;
+
+                        // 确保播放器在播放
+                        if (!player.IsPlaying)
+                        {
+                            player.Play();
+                        }
+
+                        _logService.Debug("视频模式已启用");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Error($"设置视频播放器失败: {ex.Message}");
+                    }
                 }
-                
+
                 _isVideoEnabled = true;
                 VideoSplitter.Visibility = Visibility.Visible;
             }
@@ -1122,7 +1166,7 @@ public partial class MainWindow : Window
             {
                 // 保存视频区域宽度
                 double videoWidth = column.Width.Value;
-                
+
                 // 获取当前播放器
                 var player = _liveStreamService.GetCurrentPlayer();
                 if (player != null)
@@ -1130,15 +1174,15 @@ public partial class MainWindow : Window
                     // 隐藏视频区域，但保持播放器运行
                     VideoView.Visibility = Visibility.Hidden;
                 }
-                
+
                 // 收起视频区域
                 _savedVideoColumnWidth = column.Width;
                 column.Width = new GridLength(0);
                 VideoSplitter.Visibility = Visibility.Collapsed;
-                
+
                 // 恢复窗口原来的宽度
                 this.Width = Math.Max(700, this.Width - videoWidth); // 确保不小于最小宽度
-                
+
                 _isVideoEnabled = false;
             }
         }
