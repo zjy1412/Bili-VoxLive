@@ -46,6 +46,7 @@ public partial class MainWindow : Window
     private GridLength _savedSearchColumnWidth = new GridLength(300); // 保存搜索栏宽度
     private bool _isVideoEnabled = false;
     private GridLength _savedVideoColumnWidth = new GridLength(300);
+    private double _originalWindowWidth = 700; // 保存原始窗口宽度
 
     public MainWindow(
         BiliApiService biliApiService,
@@ -1108,6 +1109,9 @@ public partial class MainWindow : Window
                 double currentLeft = this.Left;
                 double currentWidth = this.Width;
 
+                // 保存原始窗口宽度，以便关闭视频时恢复
+                _originalWindowWidth = currentWidth;
+
                 // 计算新的窗口宽度（当前宽度 + 视频区域宽度）
                 double newWidth = currentWidth + desiredVideoWidth;
 
@@ -1180,8 +1184,11 @@ public partial class MainWindow : Window
                 column.Width = new GridLength(0);
                 VideoSplitter.Visibility = Visibility.Collapsed;
 
-                // 恢复窗口原来的宽度
-                this.Width = Math.Max(700, this.Width - videoWidth); // 确保不小于最小宽度
+                // 计算当前主内容区域的宽度（总宽度减去视频区域宽度）
+                double mainContentWidth = this.Width - videoWidth;
+
+                // 设置窗口宽度为主内容区域宽度
+                this.Width = mainContentWidth;
 
                 _isVideoEnabled = false;
             }
