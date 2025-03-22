@@ -2,6 +2,7 @@ using NAudio.Wave;
 using System.Net.Http;
 using System.IO;
 using LibVLCSharp.Shared;  // 添加 LibVLC 引用
+using System.Collections.Concurrent;
 
 namespace BiliVoxLive;
 
@@ -24,7 +25,7 @@ public class LiveStreamService : ILiveStreamService
     private readonly Dictionary<long, CancellationTokenSource> _cancellationTokens = new();
     private readonly Dictionary<long, float> _roomVolumes = new();
     private readonly Dictionary<long, bool> _roomMuteStates = new();
-    private readonly Dictionary<long, MediaPlayer> _mediaPlayers = new();
+    private readonly ConcurrentDictionary<long, MediaPlayer> _mediaPlayers = new();
     private LibVLC _libVLC;
     private MediaPlayer? _currentPlayer;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);  // 确保连接操作的线程安全
@@ -150,10 +151,26 @@ public class LiveStreamService : ILiveStreamService
                 
                 try
                 {
+                    // 先从字典中移除，避免状态冲突
+                    _mediaPlayers.Remove(roomId);
+                    
+                    if (_currentPlayer == player)
+                    {
+                        _currentPlayer = null;
+                    }
+                    
                     player.Stop();
                     
-                    // 增加短暂延迟确保停止完成
-                    await Task.Delay(500);
+                    // 使用异步等待确保完全停止
+                    await Task.Run(() => 
+                    {
+                        int waitCount = 0;
+                        while (player.IsPlaying && waitCount < 50) // 最多等待5秒
+                        {
+                            Task.Delay(100).Wait();
+                            waitCount++;
+                        }
+                    });
                     
                     _logService.Debug($"释放房间 {roomId} 的播放器 (ID: {playerHashCode})");
                     player.Dispose();
@@ -161,13 +178,6 @@ public class LiveStreamService : ILiveStreamService
                 catch (Exception ex)
                 {
                     _logService.Warning($"释放播放器时出错: {ex.Message}");
-                }
-                
-                _mediaPlayers.Remove(roomId);
-
-                if (_currentPlayer == player)
-                {
-                    _currentPlayer = null;
                 }
             }
 
@@ -225,10 +235,10 @@ public class LiveStreamService : ILiveStreamService
 
     private Task<bool> TryInitializePlayerAsync(long roomId, string streamUrl)
     {
-        // 在方法开始处增加状态检查
-        if (_isDisposing || _currentRoomId != roomId)
+        // 修改状态检查条件，允许在重连过程中初始化
+        if (_isDisposing || (_currentRoomId != roomId && _currentRoomId != 0))
         {
-            _logService.Warning($"播放器初始化已中止，当前状态：释放中{_isDisposing}，房间匹配{_currentRoomId == roomId}");
+            _logService.Warning($"播放器初始化已中止，当前状态：释放中{_isDisposing}，当前房间{_currentRoomId} vs 目标房间{roomId}");
             return Task.FromResult(false);
         }
         
@@ -461,7 +471,18 @@ public class LiveStreamService : ILiveStreamService
     public async Task ConnectToRoomAsync(long roomId)
     {
         int retryCount = 0;
-        const int maxRetries = 3;
+        const int maxRetries = 5; // 增加到5次重试
+        TimeSpan[] retryDelays = { 
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(3),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(8)
+        };
+        
+        // 临时保存当前房间ID，确保重连过程中状态一致
+        long originalRoomId = _currentRoomId;
+        _currentRoomId = roomId; // 提前设置当前房间ID，确保状态检查通过
         
         while (retryCount < maxRetries)
         {
@@ -478,7 +499,7 @@ public class LiveStreamService : ILiveStreamService
                 if (await TryInitializePlayerAsync(roomId, streamUrl))
                 {
                     _logService.Info($"成功连接到房间 {roomId} (使用CDN: {preferredCdn})");
-                    // 成功后设置当前房间ID
+                    // 成功后确认当前房间ID
                     _currentRoomId = roomId;
                     
                     // 启动网络监控
@@ -490,13 +511,27 @@ public class LiveStreamService : ILiveStreamService
                     
                     return;
                 }
+                else
+                {
+                    // 增加特殊状态处理
+                    if (_isDisposing)
+                    {
+                        _logService.Warning("服务正在释放，终止重试");
+                        break;
+                    }
+                }
 
                 // 如果初始化播放器失败，但没有抛出异常，那么增加重试次数
                 retryCount++;
                 _logService.Warning($"初始化播放器失败，尝试重试 ({retryCount}/{maxRetries})");
                 
-                // 添加延迟，避免立即重试
-                await Task.Delay(2000);
+                // 使用渐进式延迟策略
+                if (retryCount < maxRetries)
+                {
+                    var delay = retryDelays[retryCount - 1];
+                    _logService.Info($"等待 {delay.TotalSeconds} 秒后重试...");
+                    await Task.Delay(delay);
+                }
             }
             catch (Exception ex)
             {
@@ -506,14 +541,30 @@ public class LiveStreamService : ILiveStreamService
                 // 如果是最后一次尝试，则抛出异常
                 if (retryCount >= maxRetries)
                 {
+                    // 恢复原始房间ID
+                    if (_currentRoomId == roomId)
+                    {
+                        _currentRoomId = originalRoomId;
+                    }
                     throw;
                 }
                 
-                // 添加延迟，避免立即重试
-                await Task.Delay(2000);
+                // 使用渐进式延迟策略
+                if (retryCount < maxRetries)
+                {
+                    var delay = retryDelays[retryCount - 1];
+                    _logService.Info($"等待 {delay.TotalSeconds} 秒后重试...");
+                    await Task.Delay(delay);
+                }
             }
         }
 
+        // 恢复原始房间ID，如果连接失败
+        if (_currentRoomId == roomId)
+        {
+            _currentRoomId = originalRoomId;
+        }
+        
         throw new Exception($"无法连接到房间 {roomId}，已重试 {maxRetries} 次");
     }
 
@@ -815,6 +866,10 @@ public class LiveStreamService : ILiveStreamService
                                     break;
                                 }
                                 
+                                // 临时锁定当前房间状态
+                                var originalRoomId = _currentRoomId;
+                                _currentRoomId = roomId; // 保持房间ID不变
+                                
                                 // 先断开当前房间连接，确保资源被正确释放
                                 await DisconnectFromRoomAsync(roomId);
                                 
@@ -824,6 +879,9 @@ public class LiveStreamService : ILiveStreamService
                                     _logService.Warning("服务正在释放，取消重连操作");
                                     break;
                                 }
+                                
+                                // 增加重连前的延迟
+                                await Task.Delay(1000, cancellationToken);
                                 
                                 // 重置CDN索引使切换到不同的CDN
                                 _currentCdnIndex++; 
