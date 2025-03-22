@@ -141,8 +141,11 @@ public class LiveStreamService : ILiveStreamService
     {
         try
         {
+            _logService.Debug($"正在断开房间 {roomId} 的连接");
+            
             if (_mediaPlayers.TryGetValue(roomId, out var player))
             {
+                _logService.Debug($"停止并释放房间 {roomId} 的播放器");
                 player.Stop();
                 player.Dispose();
                 _mediaPlayers.Remove(roomId);
@@ -161,6 +164,7 @@ public class LiveStreamService : ILiveStreamService
             }
 
             await CleanupRoomResourcesAsync(roomId);
+            _logService.Debug($"房间 {roomId} 的连接已断开并清理完成");
         }
         catch (Exception ex)
         {
@@ -209,6 +213,21 @@ public class LiveStreamService : ILiveStreamService
         var player = null as MediaPlayer;
         try
         {
+            // 检查是否已存在该房间的播放器，如果存在则先停止并释放
+            if (_mediaPlayers.TryGetValue(roomId, out var existingPlayer))
+            {
+                _logService.Debug($"房间 {roomId} 已存在播放器，先停止并释放");
+                existingPlayer.Stop();
+                existingPlayer.Dispose();
+                _mediaPlayers.Remove(roomId);
+                
+                // 如果当前播放器是要被替换的播放器，则清空引用
+                if (_currentPlayer == existingPlayer)
+                {
+                    _currentPlayer = null;
+                }
+            }
+            
             // 移除对当前播放状态的检查，允许重新连接
             var cancellationToken = _currentConnectionCts?.Token ?? CancellationToken.None;
             
@@ -666,6 +685,9 @@ public class LiveStreamService : ILiveStreamService
                     else
                     {
                         _logService.Info("简单重启失败，尝试切换CDN并重新连接...");
+                        // 先断开当前房间连接，确保资源被正确释放
+                        await DisconnectFromRoomAsync(roomId);
+                        
                         // 重置CDN索引使切换到不同的CDN
                         _currentCdnIndex++; 
                         await ConnectToRoomAsync(roomId);
