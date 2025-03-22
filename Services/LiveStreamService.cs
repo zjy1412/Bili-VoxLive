@@ -457,7 +457,7 @@ public class LiveStreamService : ILiveStreamService
                 }
                 catch { }
                 
-                _mediaPlayers.Remove(roomId);
+                _mediaPlayers.TryRemove(roomId, out _);
                 if (_currentPlayer == player)
                 {
                     _currentPlayer = null;
